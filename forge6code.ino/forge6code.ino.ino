@@ -18,6 +18,13 @@ void loop() {
   Serial.println();
   */
   digitalWrite(2,HIGH);
+  int pwmValue = map(A5, 0, 1023, 0, 255); // Map to 0-255
+  analogWrite(3,pwmValue);
+
+}
+void debug(){
+
+  digitalWrite(2,HIGH);
   for(unsigned char i = 0; i<255;i++){
     analogWrite(3,i);
     delay(20);
@@ -26,5 +33,7 @@ void loop() {
     analogWrite(3,i);
     delay(20);
   }
+
+
 
 }
