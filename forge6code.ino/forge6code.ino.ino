@@ -20,6 +20,11 @@ void loop() {
   digitalWrite(2,HIGH);
   for(unsigned char i = 0; i<255;i++){
     analogWrite(3,i);
+    delay(20);
+  }
+    for(unsigned char i = 255; i>0;i--){
+    analogWrite(3,i);
+    delay(20);
   }
 
 }
