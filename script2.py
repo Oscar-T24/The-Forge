@@ -74,29 +74,6 @@ while running:
     # Axis 2 : axe horizontal joystick droit
     # Axis 3 : axe vertical joystick droit
 
-    """
-    # Display button presses
-    button_texts = []
-    for i in range(joystick.get_numbuttons()):
-        button_state = joystick.get_button(i)
-        button_texts.append(f"Button {i}: {button_state}")
-
-    # Display hat (D-pad) positions
-    hat_texts = []
-    for i in range(joystick.get_numhats()):
-        hat_value = joystick.get_hat(i)
-        hat_texts.append(f"Hat {i}: {hat_value}")
-
-    # Render all text to screen
-    all_texts = axis_texts + button_texts + hat_texts
-    for index, text in enumerate(all_texts):
-        text_surface = font.render(text, True, (255, 255, 255))
-        screen.blit(text_surface, (20, 20 + index * 30))
-
-    pygame.display.flip()
-    pygame.time.delay(50)  # Reduce CPU usage
-    """
-
 pygame.quit()
 
 

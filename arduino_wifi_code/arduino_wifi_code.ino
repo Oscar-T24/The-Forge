@@ -1,14 +1,13 @@
 #include <SPI.h>
 #include <WiFiNINA.h>
 
-char ssid[] = "football";        // your network SSID
-char pass[] = "football";        // your network password
-int keyIndex = 0;                // network key index number
+char ssid[] = "football";        
+char pass[] = "football";        
 int status = WL_IDLE_STATUS;
 
 WiFiServer server(80);
 
-// Motor Pins (modify these based on your hardware setup)
+// Motor Pins
 int moteurGaucheForward = 5;
 int moteurGaucheReverse = 4;
 int moteurDroiteReverse = 3;
@@ -16,6 +15,9 @@ int moteurDroiteForward = 2;
 int push = 12;
 int enb = 9;
 int ena = 10;
+
+boolean isShoot = false;
+boolean isTalo = false;
 
 void setup() {
   Serial.begin(9600);
@@ -25,17 +27,20 @@ void setup() {
   pinMode(moteurGaucheReverse, OUTPUT);
   pinMode(moteurDroiteReverse, OUTPUT);
   pinMode(moteurDroiteForward, OUTPUT);
-  pinMode(enb,OUTPUT);
-  pinMode(push,OUTPUT);
+  pinMode(enb, OUTPUT);
+  pinMode(push, OUTPUT);
   
-  digitalWrite(push,HIGH);
+  digitalWrite(push, HIGH);
 
   if (WiFi.status() == WL_NO_MODULE) {
     Serial.println("Communication with WiFi module failed!");
     while (true);
   }
+  else{
+    Serial.println("Module found");
+  }
 
-  Serial.print("Creating access point named: ");
+  Serial.print("Creating access point: ");
   Serial.println(ssid);
   status = WiFi.beginAP(ssid, pass);
   if (status != WL_AP_LISTENING) {
@@ -46,71 +51,37 @@ void setup() {
   delay(10000);
   server.begin();
   printWiFiStatus();
+
+  //myservo.attach(6);
+  //myservo.write(0);
+  //delay(1000);
+  //myservo.write(60);
 }
 
 void loop() {
   WiFiClient client = server.available();
   if (client) {
-    String currentLine = "";
+    String request = "";
     while (client.connected()) {
       if (client.available()) {
         char c = client.read();
+        request += c;
         if (c == '\n') {
-          if (currentLine.length() == 0) {
-            client.println("HTTP/1.1 200 OK");
-            client.println("Content-type:text/html");
-            client.println();
-            client.print("<html><body>");
-            client.print("<h1>Robot Controller</h1>");
-            client.print("<script>");
-            client.print("document.addEventListener('keydown', function(e) {");
-            client.print("  var action = ''; ");
-            client.print("  if (e.key === 'w') action = '/forward';");
-            client.print("  if (e.key === 's') action = '/backward';");
-            client.print("  if (e.key === 'a') action = '/left';");
-            client.print("  if (e.key === 'd') action = '/right';");
-            client.print("  if (e.key === 'e') action = '/shoot';");
-            client.print("  if (action !== '') { var xhr = new XMLHttpRequest(); xhr.open('GET', action, true); xhr.send(); }");
-            client.print("});");
-            client.print("document.addEventListener('keyup', function(e) {");
-            client.print("  var xhr = new XMLHttpRequest(); xhr.open('GET', '/stop', true); xhr.send();");
-            client.print("});");
-            client.print("</script>");
-            client.print("</body></html>");
-            client.println();
-            break;
-          } else {
-            currentLine = "";
+          if (request.startsWith("GET /forward")) {
+            moveForward();
+          } else if (request.startsWith("GET /backward")) {
+            moveBackward();
+          } else if (request.startsWith("GET /left")) {
+            turnLeft();
+          } else if (request.startsWith("GET /right")) {
+            turnRight();
+          } else if (request.startsWith("GET /shoot")) {
+            shoot();
+          } else if (request.startsWith("GET /stop")) {
+            stopMotors();
           }
-        } else if (c != '\r') {
-          currentLine += c;
-        }
-
-        if (currentLine.startsWith("GET /forward?speed=")) {
-          String speedStr = currentLine.substring(currentLine.indexOf("=") + 1);
-          int speed = speedStr.toInt();
-          moveBackward(speed);
-        }
-        if (currentLine.startsWith("GET /backward?speed=")) {
-          String speedStr = currentLine.substring(currentLine.indexOf("=") + 1);
-          int speed = speedStr.toInt();
-          moveForward(speed);
-        }
-        if (currentLine.startsWith("GET /left?speed=")) {
-          String speedStr = currentLine.substring(currentLine.indexOf("=") + 1);
-          int speed = speedStr.toInt();
-          turnLeft(speed);
-        }
-        if (currentLine.startsWith("GET /right?speed=")) {
-          String speedStr = currentLine.substring(currentLine.indexOf("=") + 1);
-          int speed = speedStr.toInt();
-          turnRight(speed);
-        }
-        if (currentLine.endsWith("GET /stop")) {
-          stopMotors();
-        }
-        if (currentLine.endsWith("GET /shoot")) {
-          shoot();
+          request = "";
+          break;
         }
       }
     }
@@ -118,63 +89,68 @@ void loop() {
   }
 }
 
-void moveForward(int speed) {
+void moveForward() {
+  Serial.println("Moving Forward");
   digitalWrite(moteurGaucheForward, HIGH);
   digitalWrite(moteurGaucheReverse, LOW);
-  digitalWrite(moteurDroiteReverse, HIGH);
-  digitalWrite(moteurDroiteForward, LOW);
-  analogWrite(ena, speed);
-  analogWrite(enb, speed);
-}
-
-void moveBackward(int speed) {
-  digitalWrite(moteurGaucheForward, LOW);
-  digitalWrite(moteurGaucheReverse, HIGH);
-  digitalWrite(moteurDroiteReverse, LOW);
   digitalWrite(moteurDroiteForward, HIGH);
-  analogWrite(ena, speed);
-  analogWrite(enb, speed);
+  digitalWrite(moteurDroiteReverse, LOW);
+  analogWrite(ena, 255);
+  analogWrite(enb, 255);
 }
 
-void turnLeft(int speed) {
+void moveBackward() {
+  Serial.println("Moving Backward");
   digitalWrite(moteurGaucheForward, LOW);
   digitalWrite(moteurGaucheReverse, HIGH);
-  digitalWrite(moteurDroiteReverse, HIGH);
   digitalWrite(moteurDroiteForward, LOW);
-  analogWrite(ena, speed);
-  analogWrite(enb, speed);
+  digitalWrite(moteurDroiteReverse, HIGH);
+  analogWrite(ena, 255);
+  analogWrite(enb, 255);
 }
 
-void turnRight(int speed) {
+void turnLeft() {
+  Serial.println("Turning Left");
+  digitalWrite(moteurGaucheForward, LOW);
+  digitalWrite(moteurGaucheReverse, HIGH);
+  digitalWrite(moteurDroiteForward, HIGH);
+  digitalWrite(moteurDroiteReverse, LOW);
+  analogWrite(ena, 255);
+  analogWrite(enb, 255);
+}
+
+void turnRight() {
+  Serial.println("Turning Right");
   digitalWrite(moteurGaucheForward, HIGH);
   digitalWrite(moteurGaucheReverse, LOW);
-  digitalWrite(moteurDroiteReverse, LOW);
-  digitalWrite(moteurDroiteForward, HIGH);
-  analogWrite(ena, speed);
-  analogWrite(enb, speed);
+  digitalWrite(moteurDroiteForward, LOW);
+  digitalWrite(moteurDroiteReverse, HIGH);
+  analogWrite(ena, 255);
+  analogWrite(enb, 255);
 }
 
 void stopMotors() {
+  Serial.println("Stopping Motors");
   digitalWrite(moteurGaucheForward, LOW);
   digitalWrite(moteurGaucheReverse, LOW);
-  digitalWrite(moteurDroiteReverse, LOW);
   digitalWrite(moteurDroiteForward, LOW);
-  digitalWrite(push,HIGH);
+  digitalWrite(moteurDroiteReverse, LOW);
   analogWrite(ena, 0);
   analogWrite(enb, 0);
 }
 
 void shoot() {
-  digitalWrite(push, LOW);
-  //digitalWrite(push,HIGH);
+  Serial.println("Shooting!");
+  isShoot = ! isShoot;
+  digitalWrite(push, isShoot);
 }
+
 
 void printWiFiStatus() {
   Serial.print("SSID: ");
   Serial.println(WiFi.SSID());
-  IPAddress ip = WiFi.localIP();
   Serial.print("IP Address: ");
-  Serial.println(ip);
-  Serial.print("To see this page in action, open a browser to http://");
-  Serial.println(ip);
+  Serial.println(WiFi.localIP());
+  Serial.print("Open browser at: http://");
+  Serial.println(WiFi.localIP());
 }
